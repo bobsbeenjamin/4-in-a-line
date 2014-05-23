@@ -1,0 +1,8 @@
+
+Ideas:
+	Run 'complete' search, then store the real values of some intermediate states for my AI to search
+	Find set of data structures that allow an easy traversal of 'frontier'
+	Try to created the following pattern with no opponent blockers:
+		x x
+		x
+	After each depth, limit remaining searched branches by percentage
