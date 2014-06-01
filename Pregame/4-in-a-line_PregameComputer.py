@@ -20,14 +20,17 @@ def main():
     # Main code is wrapped in a try block in case user needs to interrupt execution early
     try:
         option = raw_input("Enter 1 to precompute, or 2 to interpret results")
-        time.clock() # start timer
         if option=="1":
             depth = raw_input("How deep to start computations?")
+            logMe("Values will be calculated starting at depth " + depth)
+            time.clock() # start timer
             precompute(depth)
         else:
+            time.clock() # start timer
             interpret()
-        logMe(time.clock()) # log time difference in seconds
-   
+        # log time difference in seconds
+        logMe("Operation took " + str(time.clock()) )
+    
     # This ensures that output/computations will still be printed 
     except KeyboardInterrupt:
         logMe("Keyboard interrupt detected")
@@ -53,25 +56,25 @@ def precompute(depth):
     @return Array with all computed boards, stored as Board objects"""
     # NOTE to Jovanni: This is not working yet. The function documentation shows what it 
     # should do.
-    boards = createAllBoardsAtOneDepth(int(depth), False, 1)
+    boards = createAllBoardsAtSingleDepth(int(depth), False, 1)
     logMe( "Number of boards created: " + str(len(boards)) )
     return # comment this out to see all of the boards
     for board in boards:
         displayBoard(board)
     
 
-def createAllBoardsAtOneDepth(depth, partialBoard, x_or_o):
+def createAllBoardsAtSingleDepth(depth, partialBoard, x_or_o):
     """Recursively creates all board states with depth number of pieces. When this is 
     called outside of itself, partialBoard should be False, and x_or_o should be 1.
     @return Array with all created boards, stored as arrays of -1's , 0's and 1's"""
     myBoards = []
     for idx in range(64):
         if partialBoard:
-            if not partialBoard[idx]:
+            if not partialBoard[idx]: # don't place 2 pieces on the same space
                 newBoard = partialBoard[:]
                 newBoard[idx] = x_or_o
                 myBoards.append(newBoard)
-        # createAllBoardsAtOneDepth() was called for the first time
+        # createAllBoardsAtSingleDepth() was called for the first time
         else:
             newBoard = [0]*64
             newBoard[idx] = x_or_o
@@ -84,7 +87,7 @@ def createAllBoardsAtOneDepth(depth, partialBoard, x_or_o):
     boards = []
     for board in myBoards:
         # Combine all children results, and pass them back to caller
-        boards.extend(createAllBoardsAtOneDepth(depth, board, -x_or_o))
+        boards.extend(createAllBoardsAtSingleDepth(depth, board, -x_or_o))
     return boards
     
 
