@@ -58,8 +58,10 @@ def precompute(depth):
     # should do.
     boards = createAllBoardsAtSingleDepth(int(depth), False, 1)
     logMe( "Number of boards created: " + str(len(boards)) )
-    return # comment this out to see all of the boards
+##    return # comment this out to see all of the boards
     for board in boards:
+        logMe(board)
+        return
         displayBoard(board)
     
 
@@ -67,28 +69,34 @@ def createAllBoardsAtSingleDepth(depth, partialBoard, x_or_o):
     """Recursively creates all board states with depth number of pieces. When this is 
     called outside of itself, partialBoard should be False, and x_or_o should be 1.
     @return Array with all created boards, stored as arrays of -1's , 0's and 1's"""
-    myBoards = []
-    for idx in range(64):
-        if partialBoard:
-            if not partialBoard[idx]: # don't place 2 pieces on the same space
-                newBoard = partialBoard[:]
+    boards = [] # this holds all boards that will actually be returned by this function
+    x_or_o = 1
+    n = 0 # this is unnecessary, but makes the code more readable
+    while n < depth:
+        # Holds all valid boards with (depth-n) pieces; clear array for each n
+        boardsAtThisSubLevel = [] 
+        # Base case: for each spot on the board, create a unique board with an X 
+        if n==0:
+            for idx in range(64):
+                newBoard = [0]*64
                 newBoard[idx] = x_or_o
-                myBoards.append(newBoard)
-        # createAllBoardsAtSingleDepth() was called for the first time
+                boardsAtThisSubLevel.append(newBoard)
+        # The 'recursive' part of this iterative function
         else:
-            newBoard = [0]*64
-            newBoard[idx] = x_or_o
-            myBoards.append(newBoard)
-    depth -= 1
-    # Base case
-    if depth < 1:
-        return myBoards
-    # Recursive calls
-    boards = []
-    for board in myBoards:
-        # Combine all children results, and pass them back to caller
-        boards.extend(createAllBoardsAtSingleDepth(depth, board, -x_or_o))
-    return boards
+            for prevBoard in boardsAtPrevSubLevel:
+                for idx in range(64):
+                    if not prevBoard[idx]: # only place piece on empty spot
+                        newBoard = prevBoard[:] # local copy
+                        newBoard[idx] = x_or_o
+                        boardsAtThisSubLevel.append(newBoard)
+        # Combine new boards with master set
+        boards = boardsAtThisSubLevel
+        # This effectively copies the current board set to a new variable (quick style)
+        boardsAtPrevSubLevel = boardsAtThisSubLevel
+        # Update move value (x_or_o) and sublevel (n)
+        x_or_o *= -1
+        n += 1
+    return boardsAtThisSubLevel
     
 
 def interpret():
