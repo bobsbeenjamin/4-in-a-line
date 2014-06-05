@@ -23,7 +23,15 @@ def main():
             board = getUserMove(board)
             displayBoard(board)
             if winner(board):
-                logMe("Winner!")
+                logMe("You win!  :-(")
+                break
+            board = makeMyMove(board)
+            displayBoard(board)
+            if winner(board):
+                logMe("I win!  :-)")
+                break
+            if drawGame(board):
+                logMe("Game is a draw!  :-/")
                 break
     
     # This ensures that output will still be printed 
@@ -79,9 +87,15 @@ def getUserMove(board):
             continue
     
 
-def drawGame(board):
-    """@return True if the game is tied; False otherwise"""
-    return '-' not in board
+def makeMyMove(board):
+    """Generates a 'smart' move, using MINIMAX with alpha-beta pruning. Updates board with 
+    the move, and returns it.
+    @return board, updated with userMove"""
+    for cell in range(64):
+        if board[cell]=='-':
+            board = board[:cell] + "X" + board[cell+1:]
+            break
+    return board
     
 
 def winner(board):
@@ -100,7 +114,12 @@ def winner(board):
         if "OOOO" in col:
             return 1
     return 0 # no wins found
+    
 
+def drawGame(board):
+    """@return True if the game is tied; False otherwise"""
+    return '-' not in board
+    
 
 ##########################################################################################
 ##############################       UTILITIES       #####################################
