@@ -22,7 +22,6 @@ def evalLine(board, line):
     """Utility value of a single board line"""
     signFor = lambda c: 1 if c == 'X' else -1 if c == 'O' else 0
     def valueOf(run, count, space):
-        print run, count, space
         if run >= 4:
             # won.
             return 16384
