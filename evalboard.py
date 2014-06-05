@@ -15,7 +15,7 @@ def evalBoard(board):
         sum += evalLine(board, xrange(colStart, 64, 8))
     # scan every row
     for rowStart in xrange(0, 64, 8):
-        sum += evalLine(board, xrange(rowStart, 64, 1))
+        sum += evalLine(board, xrange(rowStart, rowStart + 8, 1))
     return sum
 
 def evalLine(board, line):
