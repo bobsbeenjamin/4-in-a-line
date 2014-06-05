@@ -109,10 +109,45 @@ def makeMyMove(board, timeLimit):
     the move, and returns it.
     @return board, updated with userMove"""
     startTime = time.clock()
-    frontier = [board]
+    depth = 0
+    x_or_o = "X"
+    rootBoard = Board(Board, 0, None)
+    frontier = [rootBoard]
     while True:
+        depth += 1
+        newFrontier = []
         for board in frontier:
-            pass
+            children = getBestChildren(board, x_or_o)
+        x_or_o = "X" if x_or_o=="O" else "O"
+    
+
+def getBestChildren(parent, x_or_o):
+    """Expand all possible children of board, prune away the worst ones, and return the 
+    remaining ones as a set. board should be a Board object.
+    @return set with board's best children"""
+##    children = set() # empty set that will be filled with children soon
+##    valueList = [] # this will hold minimax values that correspond to
+    holdingCell = [] # empty list to hold all possible chilren before pruning 
+    parentBoard = parent.board # alias
+    for cell in range(64):
+        if parentBoard[cell]=='-':
+            newBoard = parentBoard[:cell] + x_or_o + parentBoard[cell+1:]
+            value = evalBoard(newBoard)
+            newChild = Board(newBoard, value, parent)
+            holdingCell.append(newChild)
+##            valueList.append(value)
+##    averageVal = sum(valueList)/len(valueList)
+##    for idx, potentialChild in enumerate(holdingCell):
+    # Sort the holdingCell by board value, from best to worst
+    holdingCell.sort(key=Board.getSortKey, reverse=True)
+    percentageToKeep = .5
+    numToKeep = len(holdingCell)*percentageToKeep
+    if x_or_o=="X":
+        children = set(holdingCell[:numToKeep])
+    else:
+        children = set(holdingCell[-numToKeep:])
+    return children
+    
 
 def evalBoard(board):
     """Utility function that takes a board and returns an integer rating of
@@ -230,33 +265,25 @@ def createOutputFile():
 ################################    BOARD CLASS    #######################################
 ##########################################################################################
 
-# NOTE to Jovanni: This board class may be useful. But it's still a work in progress. Of 
-# course, we may just forget this and use another data structure entirely. :-/
 class Board:
     # Constructor
-    def __init__(self, board, minimax, depth):
+    def __init__(self, board, value, parent):
         self.board = board
-##        self.xBoard, self.oBoard = self.encodeBoard(board)
-        self.minimax = minimax
-        self.depth = depth
-        
-    def encodeBoard(self, board):
-        """Boards can be stored as 32 character strings rather than 64 character ones."""
-        # Encode X's
-        bitString = "".join(["1" if piece=="X" else "0" for piece in board])
-        xBoard = int(bitString, 2)
-##        xBoard = '{0:16x}'.format(xBoard)
-        # Encode O's
-        bitString = "".join(["1" if piece=="O" else "0" for piece in board])
-        oBoard = int(bitString, 2)
-##        oBoard = '{0:16x}'.format(oBoard)
-        # Joing together into unified string and return it
-        return xBoard, oBoard
-        
-    def getOrder(self):
+        self.value = value
+        self.parent = parent
+##        self.depth = depth
+    
+    # These functions allow Python to store instances of Board in containters that require 
+    # immutable objects, such as sets
+    def __hash__(self):
+        return hash(self.board)
+    def __eq__(self, other):
+        return self.board==other.board
+    
+    def getSortKey(self):
         """Python's built-in sort can use a function that returns the key to sort by.
         This is it."""
-        return self.depth
+        return self.value
     
 
 # Required when running Python on Windows (doesn't break code when run on Linux)
