@@ -106,8 +106,9 @@ def getUserMove(board):
 
 def makeMyMove(board, timeLimit):
     """Generates a 'smart' move, using MINIMAX with alpha-beta pruning. Updates board with 
-    the move, and returns it.
-    @return board, updated with userMove"""
+    the move.
+    @return Board: Original board, updated with the computer's next move
+    @return string: A sentence describing the computer's next move"""
     startTime = time.clock()
     depth = 0
     x_or_o = "X"
@@ -118,6 +119,16 @@ def makeMyMove(board, timeLimit):
         newFrontier = []
         for board in frontier:
             children = getBestChildren(board, x_or_o)
+            newFrontier.extend(children)
+            if time.clock()-startTime >= timeLimit:
+                logMe("Depth: " + str(depth))
+                if newFrontier > frontier:
+                    newFrontier.sort(key=Board.getSortKey)
+                    return getBestBoardPlusMove(newFrontier.pop())
+                else:
+                    frontier.sort(key=Board.getSortKey)
+                    getBestBoardPlusMove(frontier.pop())
+        frontier = newFrontier
         x_or_o = "X" if x_or_o=="O" else "O"
     
 
@@ -125,8 +136,6 @@ def getBestChildren(parent, x_or_o):
     """Expand all possible children of board, prune away the worst ones, and return the 
     remaining ones as a set. board should be a Board object.
     @return set with board's best children"""
-##    children = set() # empty set that will be filled with children soon
-##    valueList = [] # this will hold minimax values that correspond to
     holdingCell = [] # empty list to hold all possible chilren before pruning 
     parentBoard = parent.board # alias
     for cell in range(64):
@@ -135,9 +144,6 @@ def getBestChildren(parent, x_or_o):
             value = evalBoard(newBoard)
             newChild = Board(newBoard, value, parent)
             holdingCell.append(newChild)
-##            valueList.append(value)
-##    averageVal = sum(valueList)/len(valueList)
-##    for idx, potentialChild in enumerate(holdingCell):
     # Sort the holdingCell by board value, from best to worst
     holdingCell.sort(key=Board.getSortKey, reverse=True)
     percentageToKeep = .5
@@ -151,28 +157,42 @@ def getBestChildren(parent, x_or_o):
 
 def evalBoard(board):
     """Utility function that takes a board and returns an integer rating of
-    the desirability of that state of that board
-    @return int, where the larger the number the better the move (negative is bad)"""
+    the desirability of that state of that board"""
     sum = 0
     # scan every column
     for colStart in xrange(0, 8, 1):
         sum += evalLine(board, xrange(colStart, 64, 8))
     # scan every row
     for rowStart in xrange(0, 64, 8):
-        sum += evalLine(board, xrange(rowStart, 64, 1))
+        sum += evalLine(board, xrange(rowStart, rowStart + 8, 1))
     return sum
     
 
 def evalLine(board, line):
     """Utility value of a single board line"""
     signFor = lambda c: 1 if c == 'X' else -1 if c == 'O' else 0
-    def valueOf(count, space):
-        return 2048 if length >= 4 else (2 ** length) + space
+    def valueOf(run, count, space):
+        if run >= 4:
+            # won.
+            return 16384
+        elif count + space < 4:
+            # a non-winning run with no room to expand is worthless
+            return 0
+        elif count > 0:
+            # straight run is best, nearby pieces seperated by spaces good,
+            # room to expand is desirable
+            bonus = count - run
+            return (4 ** run) + (2 ** bonus if bonus > 0 else 0) + space
+        else:
+            return 0
 
     total = 0 # sum
-    space = 0 # spaces on the ends or within this run
+
+    space = 0 # spaces on the ends or within this stretch
     carry = 0 # straight space that carries over
-    count = 0 # contiguous run length of player symbols
+    count = 0 # count of symbols in this stretch (non-contigious)
+    run = 0   # count of contigioius symbols
+    maxrun = 0
     last = '' # last player symbol encountered
 
     for i in line:
@@ -181,31 +201,61 @@ def evalLine(board, line):
         # total and switch if we encounter a different player symbol
         if c != last and c != '-':
             # switch symbols, end run
-            total += valueOf(count, space) * signFor(last)
-            space = carry
-            count = 0
+            total += valueOf(maxrun, count, space) * signFor(last)
+            space, count, run, maxrun = carry, 0, 0, 0
             last = c
 
         # count it
         if c == '-':
             space += 1
             carry += 1
-            if carry >= 3 and len(last) > 0:
-                # too much contigious space, end run
-                total += valueOf(count, space) * signFor(last)
-                space = carry
-                count = 0
-                last = ''
+            run = 0 # run broken by space
         else:
+            if carry > 2 and len(last) > 0:
+                # too much space between same symbol, end run
+                total += valueOf(maxrun, count, space) * signFor(last)
+                space, count, run, maxrun = carry, 0, 0, 0
+                # don't reset last
+            run += 1
+            maxrun = max(run, maxrun)
             count += 1
-            carry = 0
+            carry = 0 # space run broken
 
+    #finished scanning line
     if (count > 0):
         # have leftovers, end run
-        total += valueOf(count, space) * signFor(last)
-        space = carry
-        count = 0
+        total += valueOf(maxrun, count, space) * signFor(last)
+        space, count, run, maxrun = carry, 0, 0, 0
         last = ''
+
+    return total
+    
+
+def getBestBoardPlusMove(leaf):
+    """Chains back from leaf to root, then keeps the direct child of root that led to 
+    leaf. The board of this child is then compared to the board of parent, and the changed 
+    element is noted.
+    @return Board: Best child of root
+    @return string: Sentence stating next best move"""
+    parent = leaf.parent
+    while parent.parent:
+        me = parent
+        parent = me.parent
+    # parent is now root, and me is now its best child
+    for idx, cell in enumerate(range(64)):
+        if me.board[cell] != parent.board[cell]:
+            return me.board, idxToNextMove(idx)
+    else:
+        logMe("ERROR: root and its best child have identical boards")
+        raise Exception
+    
+
+def idxToNextMove(idx):
+    """@return a nice string representation of the idx on a board"""
+    rowElement, colElement = divmod(idx, 8)
+    rowElement = chr(rowElement + ord('a'))
+    colElement = str(colElement + 1)
+    return "Computer move: " + rowElement + colElement
     
 
 def winner(board):
