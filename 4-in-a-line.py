@@ -44,17 +44,17 @@ def main():
             if drawGame(board):
                 logMe("Game is a draw!  :-/")
                 break
-    
-    # This ensures that output will still be printed 
+
+    # This ensures that output will still be printed
     except KeyboardInterrupt:
         logMe("Keyboard interrupt detected")
         return
-    
+
     finally:
         logMe("End of program")
         # It is very handy to always create the log file
         createOutputFile()
-    
+
 
 ##########################################################################################
 ##############################        HELPERS        #####################################
@@ -67,13 +67,13 @@ def setup():
     meFirst = raw_input("Would you like to go first? (y/n): ")=='n'
     timeLimit = raw_input("How long should the computer think (in sec)? : ")
     return meFirst, int(timeLimit)
-    
+
 
 def getUserMove(board):
-    """Prompts the user for a move, and (if needed) reprompts until the user enters a 
-    valid move. A valid move is of the form 'B6', where the first character is in the 
-    range A-H, and the second character is in the range 1-8. The user's move is then 
-    converted to an int representing the index in board (which is a string). Finally, 
+    """Prompts the user for a move, and (if needed) reprompts until the user enters a
+    valid move. A valid move is of the form 'B6', where the first character is in the
+    range A-H, and the second character is in the range 1-8. The user's move is then
+    converted to an int representing the index in board (which is a string). Finally,
     board is updated and returned.
     @return board, updated with userMove"""
     # Used to catch bad moves
@@ -105,10 +105,10 @@ def getUserMove(board):
         except BadMoveException:
             print "Not a legal move!"
             continue
-    
+
 
 def makeMyMove(board, timeLimit):
-    """Generates a 'smart' move, using MINIMAX with alpha-beta pruning. Updates board with 
+    """Generates a 'smart' move, using MINIMAX with alpha-beta pruning. Updates board with
     the move.
     @return Board: Original board, updated with the computer's next move
     @return string: A sentence describing the computer's next move"""
@@ -121,11 +121,14 @@ def makeMyMove(board, timeLimit):
         depth += 1
         newFrontier = []
         for board in frontier:
-            children = getBestChildren(board, x_or_o)
-            newFrontier.extend(children)
+            # don't generate successors to a board after we've lost
+            if abs(board.value) > -1000000:
+                newFrontier.extend(getBestChildren(board, x_or_o))
+
             if time.clock()-startTime >= timeLimit:
-                logMe("Depth: " + str(depth))
-                if newFrontier > frontier:
+                logMe("Depth: " + str(depth) + ", Length: " + str(len(newFrontier)) + " / " + str(len(frontier)))
+
+                if len(newFrontier) > len(frontier):
                     newFrontier.sort(key=Board.getSortKey)
                     return getBestBoardPlusMove(newFrontier.pop())
                 else:
@@ -133,13 +136,13 @@ def makeMyMove(board, timeLimit):
                     return getBestBoardPlusMove(frontier.pop())
         frontier = newFrontier
         x_or_o = "X" if x_or_o=="O" else "O"
-    
+
 
 def getBestChildren(parent, x_or_o):
-    """Expand all possible children of board, prune away the worst ones, and return the 
+    """Expand all possible children of board, prune away the worst ones, and return the
     remaining ones as a set. board should be a Board object.
     @return set with board's best children"""
-    holdingCell = [] # empty list to hold all possible chilren before pruning 
+    holdingCell = [] # empty list to hold all possible chilren before pruning
     parentBoard = parent.board # alias
     for cell in range(64):
         if parentBoard[cell]=='-':
@@ -156,12 +159,12 @@ def getBestChildren(parent, x_or_o):
     else:
         children = set(holdingCell[-numToKeep:])
     return children
-    
+
 
 
 def getBestBoardPlusMove(leaf):
-    """Chains back from leaf to root, then keeps the direct child of root that led to 
-    leaf. The board of this child is then compared to the board of parent, and the changed 
+    """Chains back from leaf to root, then keeps the direct child of root that led to
+    leaf. The board of this child is then compared to the board of parent, and the changed
     element is noted.
     @return Board: Best child of root
     @return string: Sentence stating next best move"""
@@ -176,7 +179,7 @@ def getBestBoardPlusMove(leaf):
     else:
         logMe("ERROR: root and its best child have identical boards")
         raise Exception
-    
+
 
 def idxToNextMove(idx):
     """@return a nice string representation of the idx on a board"""
@@ -184,7 +187,7 @@ def idxToNextMove(idx):
     rowElement = chr(rowElement + ord('a'))
     colElement = str(colElement + 1)
     return "Computer move: " + rowElement + colElement
-    
+
 
 def winner(board):
     """@return -1 if the computer won, 1 if the user won, or 0 if there is no winner"""
@@ -202,12 +205,12 @@ def winner(board):
         if "OOOO" in col:
             return 1
     return 0 # no wins found
-    
+
 
 def drawGame(board):
     """@return True if the game is tied; False otherwise"""
     return '-' not in board
-    
+
 
 ##########################################################################################
 ##############################       UTILITIES       #####################################
@@ -224,21 +227,21 @@ def displayBoard(board):
     for row in range(0, 128, 16):
         # Start with the appropriate letter, then add the now-expanded row string
         logMe(chr(row/16+65) + boardStr[row:row+16])
-    
+
 
 def logMe(strToLog=""):
-    """Prints strToLog and adds it to the global logStr, both on a newline. logMe is used 
+    """Prints strToLog and adds it to the global logStr, both on a newline. logMe is used
     so that all output is collected on the fly, for easy file storage later."""
     global logStr # allow modification of the global var logStr
     logStr += "\n" + str(strToLog)
     print strToLog
-    
+
 
 def createOutputFile():
     """Creates a file with all output."""
     with open("output.log", 'w') as output:
         output.write(logStr)
-        
+
 
 ##########################################################################################
 ################################    BOARD CLASS    #######################################
@@ -251,19 +254,19 @@ class Board:
         self.value = value
         self.parent = parent
 ##        self.depth = depth
-    
-    # These functions allow Python to store instances of Board in containters that require 
+
+    # These functions allow Python to store instances of Board in containters that require
     # immutable objects, such as sets
     def __hash__(self):
         return hash(self.board)
     def __eq__(self, other):
         return self.board==other.board
-    
+
     def getSortKey(self):
         """Python's built-in sort can use a function that returns the key to sort by.
         This is it."""
         return self.value
-    
+
 
 # Required when running Python on Windows (doesn't break code when run on Linux)
 if __name__ == '__main__':

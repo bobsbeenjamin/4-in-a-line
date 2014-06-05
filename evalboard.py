@@ -20,11 +20,11 @@ def evalBoard(board):
 
 def evalLine(board, line):
     """Utility value of a single board line"""
-    signFor = lambda c: 1 if c == 'X' else -1 if c == 'O' else 0
+    signedFor = lambda x, c: x if c == 'X' else (-x * 12) / 10 if c == 'O' else 0
     def valueOf(run, count, space):
         if run >= 4:
             # won.
-            return 16384
+            return 100000000
         elif count + space < 4:
             # a non-winning run with no room to expand is worthless
             return 0
@@ -32,7 +32,8 @@ def evalLine(board, line):
             # straight run is best, nearby pieces seperated by spaces good,
             # room to expand is desirable
             bonus = count - run
-            return (4 ** run) + (2 ** bonus if bonus > 0 else 0) + space
+            space = min(space, 5 - run)
+            return (run ** 8) + (bonus ** 4 if bonus > 0 else 0) + space ** 2
         else:
             return 0
 
@@ -51,7 +52,7 @@ def evalLine(board, line):
         # total and switch if we encounter a different player symbol
         if c != last and c != '-':
             # switch symbols, end run
-            total += valueOf(maxrun, count, space) * signFor(last)
+            total += signedFor(valueOf(maxrun, count, space), last)
             space, count, run, maxrun = carry, 0, 0, 0
             last = c
 
@@ -63,7 +64,7 @@ def evalLine(board, line):
         else:
             if carry > 2 and len(last) > 0:
                 # too much space between same symbol, end run
-                total += valueOf(maxrun, count, space) * signFor(last)
+                total += signedFor(valueOf(maxrun, count, space), last)
                 space, count, run, maxrun = carry, 0, 0, 0
                 # don't reset last
             run += 1
@@ -74,7 +75,7 @@ def evalLine(board, line):
     #finished scanning line
     if (count > 0):
         # have leftovers, end run
-        total += valueOf(maxrun, count, space) * signFor(last)
+        total += signedFor(valueOf(maxrun, count, space), last)
         space, count, run, maxrun = carry, 0, 0, 0
         last = ''
 
