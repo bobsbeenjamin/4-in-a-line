@@ -18,14 +18,22 @@ logStr = "Welcome to the 4-in-a-line Program!"
 def main():
     # Main code is wrapped in a try block in case user needs to interrupt execution early
     try:
+        meFirst, timeLimit = setup()
         board = "----------------------------------------------------------------"
+        if meFirst:
+            logMe("I will go first")
+            board = makeMyMove(board)
+            displayBoard(board)
+        else:
+            logMe("You get to go first")
+        # Loop forcefully exits when there is a winner or the game is a draw
         while True:
             board = getUserMove(board)
             displayBoard(board)
             if winner(board):
                 logMe("You win!  :-(")
                 break
-            board = makeMyMove(board)
+            board = makeMyMove(board, timeLimit)
             displayBoard(board)
             if winner(board):
                 logMe("I win!  :-)")
@@ -48,6 +56,15 @@ def main():
 ##########################################################################################
 ##############################        HELPERS        #####################################
 ##########################################################################################
+
+def setup():
+    """Gets some info from the user that will be used throughout the game.
+    @return meFirst: True if the computer will go first; False otherwise
+    @return timeLimit: int with number of seconds for the computer to 'think'"""
+    meFirst = raw_input("Would you like to go first? (y/n): ")=='n'
+    timeLimit = raw_input("How long should the computer think (in sec)? : ")
+    return meFirst, int(timeLimit)
+    
 
 def getUserMove(board):
     """Prompts the user for a move, and (if needed) reprompts until the user enters a 
@@ -87,15 +104,73 @@ def getUserMove(board):
             continue
     
 
-def makeMyMove(board):
+def makeMyMove(board, timeLimit):
     """Generates a 'smart' move, using MINIMAX with alpha-beta pruning. Updates board with 
     the move, and returns it.
     @return board, updated with userMove"""
-    for cell in range(64):
-        if board[cell]=='-':
-            board = board[:cell] + "X" + board[cell+1:]
-            break
-    return board
+    startTime = time.clock()
+    frontier = [board]
+    while True:
+        for board in frontier:
+            pass
+
+def evalBoard(board):
+    """Utility function that takes a board and returns an integer rating of
+    the desirability of that state of that board
+    @return int, where the larger the number the better the move (negative is bad)"""
+    sum = 0
+    # scan every column
+    for colStart in xrange(0, 8, 1):
+        sum += evalLine(board, xrange(colStart, 64, 8))
+    # scan every row
+    for rowStart in xrange(0, 64, 8):
+        sum += evalLine(board, xrange(rowStart, 64, 1))
+    return sum
+    
+
+def evalLine(board, line):
+    """Utility value of a single board line"""
+    signFor = lambda c: 1 if c == 'X' else -1 if c == 'O' else 0
+    def valueOf(count, space):
+        return 2048 if length >= 4 else (2 ** length) + space
+
+    total = 0 # sum
+    space = 0 # spaces on the ends or within this run
+    carry = 0 # straight space that carries over
+    count = 0 # contiguous run length of player symbols
+    last = '' # last player symbol encountered
+
+    for i in line:
+        c = board[i]
+
+        # total and switch if we encounter a different player symbol
+        if c != last and c != '-':
+            # switch symbols, end run
+            total += valueOf(count, space) * signFor(last)
+            space = carry
+            count = 0
+            last = c
+
+        # count it
+        if c == '-':
+            space += 1
+            carry += 1
+            if carry >= 3 and len(last) > 0:
+                # too much contigious space, end run
+                total += valueOf(count, space) * signFor(last)
+                space = carry
+                count = 0
+                last = ''
+        else:
+            count += 1
+            carry = 0
+
+    if (count > 0):
+        # have leftovers, end run
+        total += valueOf(count, space) * signFor(last)
+        space = carry
+        count = 0
+        last = ''
     
 
 def winner(board):
