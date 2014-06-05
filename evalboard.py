@@ -32,7 +32,7 @@ def evalLine(board, line):
             # straight run is best, nearby pieces seperated by spaces good,
             # room to expand is desirable
             bonus = count - run
-            return (4 ** run) + (bonus ** 2 if bonus > 0 else 0) + space
+            return (4 ** run) + (2 ** bonus if bonus > 0 else 0) + space
         else:
             return 0
 
@@ -42,6 +42,7 @@ def evalLine(board, line):
     carry = 0 # straight space that carries over
     count = 0 # count of symbols in this stretch (non-contigious)
     run = 0   # count of contigioius symbols
+    maxrun = 0
     last = '' # last player symbol encountered
 
     for i in line:
@@ -50,29 +51,31 @@ def evalLine(board, line):
         # total and switch if we encounter a different player symbol
         if c != last and c != '-':
             # switch symbols, end run
-            total += valueOf(run, count, space) * signFor(last)
-            space, count, run = carry, 0, 0
+            total += valueOf(maxrun, count, space) * signFor(last)
+            space, count, run, maxrun = carry, 0, 0, 0
             last = c
 
         # count it
         if c == '-':
             space += 1
             carry += 1
-            run = 0 # run boroken by space
-            if carry >= 3 and len(last) > 0:
-                # too much contigious space, end run
-                total += valueOf(run, count, space) * signFor(last)
-                space, count, run = carry, 0, 0
-                last = ''
+            run = 0 # run broken by space
         else:
+            if carry > 2 and len(last) > 0:
+                # too much space between same symbol, end run
+                total += valueOf(maxrun, count, space) * signFor(last)
+                space, count, run, maxrun = carry, 0, 0, 0
+                # don't reset last
             run += 1
+            maxrun = max(run, maxrun)
             count += 1
             carry = 0 # space run broken
 
+    #finished scanning line
     if (count > 0):
         # have leftovers, end run
-        total += valueOf(run, count, space) * signFor(last)
-        space, count, run = carry, 0, 0
+        total += valueOf(maxrun, count, space) * signFor(last)
+        space, count, run, maxrun = carry, 0, 0, 0
         last = ''
 
     return total
