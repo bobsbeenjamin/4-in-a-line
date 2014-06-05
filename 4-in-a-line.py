@@ -22,8 +22,9 @@ def main():
         board = "----------------------------------------------------------------"
         if meFirst:
             logMe("I will go first")
-            board = makeMyMove(board)
+            board, nextMove = makeMyMove(board, timeLimit)
             displayBoard(board)
+            logMe(nextMove)
         else:
             logMe("You get to go first")
         # Loop forcefully exits when there is a winner or the game is a draw
@@ -33,8 +34,9 @@ def main():
             if winner(board):
                 logMe("You win!  :-(")
                 break
-            board = makeMyMove(board, timeLimit)
+            board, nextMove = makeMyMove(board, timeLimit)
             displayBoard(board)
+            logMe(nextMove)
             if winner(board):
                 logMe("I win!  :-)")
                 break
@@ -112,7 +114,7 @@ def makeMyMove(board, timeLimit):
     startTime = time.clock()
     depth = 0
     x_or_o = "X"
-    rootBoard = Board(Board, 0, None)
+    rootBoard = Board(board, 0, None)
     frontier = [rootBoard]
     while True:
         depth += 1
@@ -127,7 +129,7 @@ def makeMyMove(board, timeLimit):
                     return getBestBoardPlusMove(newFrontier.pop())
                 else:
                     frontier.sort(key=Board.getSortKey)
-                    getBestBoardPlusMove(frontier.pop())
+                    return getBestBoardPlusMove(frontier.pop())
         frontier = newFrontier
         x_or_o = "X" if x_or_o=="O" else "O"
     
@@ -147,7 +149,7 @@ def getBestChildren(parent, x_or_o):
     # Sort the holdingCell by board value, from best to worst
     holdingCell.sort(key=Board.getSortKey, reverse=True)
     percentageToKeep = .5
-    numToKeep = len(holdingCell)*percentageToKeep
+    numToKeep = max(int(len(holdingCell)*percentageToKeep), 1)
     if x_or_o=="X":
         children = set(holdingCell[:numToKeep])
     else:
@@ -268,7 +270,7 @@ def winner(board):
             return 1
     for col in range(8):
         # Build a string for each column
-        col = "".join([board[cell+col] for cell in range(0, 64, 8)])
+        col = "".join([board[cell] for cell in range(col, 64, 8)])
         if "XXXX" in col:
             return -1
         if "OOOO" in col:
@@ -287,6 +289,7 @@ def drawGame(board):
 
 def displayBoard(board):
     """Displays board nicely."""
+    logMe() # empty line
     logMe("  1 2 3 4 5 6 7 8")
     boardStr = ""
     for piece in board:
