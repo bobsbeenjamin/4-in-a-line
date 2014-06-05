@@ -19,9 +19,12 @@ def main():
     # Main code is wrapped in a try block in case user needs to interrupt execution early
     try:
         board = "----------------------------------------------------------------"
-        move = getUserMove(board)
-        board = board[:move] + "O" + board[move+1:]
-        displayBoard(board)
+        while True:
+            board = getUserMove(board)
+            displayBoard(board)
+            if winner(board):
+                logMe("Winner!")
+                break
     
     # This ensures that output will still be printed 
     except KeyboardInterrupt:
@@ -42,34 +45,62 @@ def getUserMove(board):
     """Prompts the user for a move, and (if needed) reprompts until the user enters a 
     valid move. A valid move is of the form 'B6', where the first character is in the 
     range A-H, and the second character is in the range 1-8. The user's move is then 
-    converted and returned as an int representing the index in a 1-D 64-length board.
-    @return a valid move entered by the user"""
+    converted to an int representing the index in board (which is a string). Finally, 
+    board is updated and returned.
+    @return board, updated with userMove"""
+    # Used to catch bad moves
+    class BadMoveException:
+        pass
     while True:
         try:
             userMove = raw_input("Choose your next move: ")
             if not len(userMove)==2:
-                raise Exception
+                raise BadMoveException
             # Inspect first char (row)
             row = userMove[0]
             row = ord(row) - 65 # 65 is ASCII char 'A'
             if row > 8: # maybe the user entered a lower-case character
                 row -= 32
             if not(row>=0 and row<=7):
-                raise Exception
+                raise BadMoveException
             # Inspect second char (column)
             col = userMove[1]
             col = ord(col) - 49 # 65 is ASCII char '1'
             if not(col>=0 and col<=7):
-                raise Exception
+                raise BadMoveException
             # Convert userMove to int, and perform one last check to ensure spot is empty
             userMove = row*8 + col
             if board[userMove] != '-':
-                raise Exception
-            return userMove
-        except:
+                raise BadMoveException
+            board = board[:userMove] + "O" + board[userMove+1:]
+            return board
+        except BadMoveException:
             print "Not a legal move!"
             continue
     
+
+def drawGame(board):
+    """@return True if the game is tied; False otherwise"""
+    return '-' not in board
+    
+
+def winner(board):
+    """@return -1 if the computer won, 1 if the user won, or 0 if there is no winner"""
+    for row in range(0, 64, 8):
+        row = board[row:row+8]
+        if "XXXX" in row:
+            return -1
+        if "OOOO" in row:
+            return 1
+    for col in range(8):
+        # Build a string for each column
+        col = "".join([board[cell+col] for cell in range(0, 64, 8)])
+        if "XXXX" in col:
+            return -1
+        if "OOOO" in col:
+            return 1
+    return 0 # no wins found
+
 
 ##########################################################################################
 ##############################       UTILITIES       #####################################
