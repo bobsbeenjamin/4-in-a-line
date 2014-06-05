@@ -20,14 +20,17 @@ def main():
     # Main code is wrapped in a try block in case user needs to interrupt execution early
     try:
         option = raw_input("Enter 1 to precompute, or 2 to interpret results")
-        time.clock() # start timer
         if option=="1":
             depth = raw_input("How deep to start computations?")
+            logMe("Values will be calculated starting at depth " + depth)
+            time.clock() # start timer
             precompute(depth)
         else:
+            time.clock() # start timer
             interpret()
-        logMe(time.clock()) # log time difference in seconds
-   
+        # log time difference in seconds
+        logMe("Operation took " + str(time.clock()) )
+    
     # This ensures that output/computations will still be printed 
     except KeyboardInterrupt:
         logMe("Keyboard interrupt detected")
@@ -53,39 +56,47 @@ def precompute(depth):
     @return Array with all computed boards, stored as Board objects"""
     # NOTE to Jovanni: This is not working yet. The function documentation shows what it 
     # should do.
-    boards = createAllBoardsAtOneDepth(int(depth), False, 1)
-    logMe( "Number of boards created: " + str(len(boards)) )
-    return # comment this out to see all of the boards
-    for board in boards:
-        displayBoard(board)
+    try:
+        boards = createAllBoardsAtSingleDepth(int(depth), False, 1)
+    finally:
+        logMe( "Number of boards created: " + str(len(boards)) )
+        return # comment this out to see all of the boards
+        for board in boards:
+            displayBoard(board)
     
 
-def createAllBoardsAtOneDepth(depth, partialBoard, x_or_o):
+def createAllBoardsAtSingleDepth(depth, partialBoard, x_or_o):
     """Recursively creates all board states with depth number of pieces. When this is 
     called outside of itself, partialBoard should be False, and x_or_o should be 1.
     @return Array with all created boards, stored as arrays of -1's , 0's and 1's"""
-    myBoards = []
-    for idx in range(64):
-        if partialBoard:
-            if not partialBoard[idx]:
-                newBoard = partialBoard[:]
+    boards = [] # this holds all boards that will actually be returned by this function
+    x_or_o = "X"
+    n = 0 # this is unnecessary, but makes the code more readable
+    while n < depth:
+        # Holds all valid boards with (depth-n) pieces; clear array for each n
+        boardsAtThisSubLevel = [] 
+        # Base case: for each spot on the board, create a unique board with an X 
+        if n==0:
+            for idx in range(64):
+                newBoard = ["-"]*64
                 newBoard[idx] = x_or_o
-                myBoards.append(newBoard)
-        # createAllBoardsAtOneDepth() was called for the first time
+                boardsAtThisSubLevel.append(newBoard)
+        # The 'recursive' part of this iterative function
         else:
-            newBoard = [0]*64
-            newBoard[idx] = x_or_o
-            myBoards.append(newBoard)
-    depth -= 1
-    # Base case
-    if depth < 1:
-        return myBoards
-    # Recursive calls
-    boards = []
-    for board in myBoards:
-        # Combine all children results, and pass them back to caller
-        boards.extend(createAllBoardsAtOneDepth(depth, board, -x_or_o))
-    return boards
+            for prevBoard in boardsAtPrevSubLevel:
+                for idx in range(64):
+                    if prevBoard[idx]=="-": # only place a piece on an empty spot
+                        newBoard = prevBoard[:] # local copy
+                        newBoard[idx] = x_or_o
+                        boardsAtThisSubLevel.append(newBoard)
+        # Combine new boards with master set
+        boards = boardsAtThisSubLevel
+        # This effectively copies the current board set to a new variable (quick style)
+        boardsAtPrevSubLevel = boardsAtThisSubLevel
+        # Update move value (x_or_o) and sublevel (n)
+        x_or_o = "X" if x_or_o=="O" else "O"
+        n += 1
+    return boardsAtThisSubLevel
     
 
 def interpret():
@@ -107,26 +118,9 @@ def displayBoard(board):
     logMe("  1 2 3 4 5 6 7 8")
     boardStr = ""
     for piece in board:
-        if piece==1:
-            boardStr += " X"
-        if piece==-1:
-            boardStr += " O"
-        if piece==0:
-            boardStr += " -"
+        boardStr += " " + piece
     for row in range(0, 128, 16):
         logMe(chr(row/8+65) + boardStr[row:row+16])
-    # NOTE to Jovanni: The commented code below is an alternate way to display the board 
-    # that works well too. I was testing both to see which performs faster (this is useful
-    # for testing). The 2 algorithms perform about the same, so I kept the easier read.
-##    for row in range(8):
-##        # Start with one of the characters A-H
-##        rowStr = chr(row+65) + " "
-##        # Set up string builder
-##        row *= 8
-##        row = board[row:row+8]
-##        # Build each row via list comprehension and display it
-##        rowStr += " ".join(["X" if cell==1 else "O" if cell==-1 else "-" for cell in row])
-##        logMe(rowStr)
     
 
 def logMe(strToLog="", runSilent=False):
