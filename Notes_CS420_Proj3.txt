@@ -1,18 +1,23 @@
 
 Ideas:
-	Run 'complete' search, then store the real values of some intermediate states for our AI to search
-	Find set of data structures that allow an easy traversal of the 'frontier'
-	Try to created the following pattern with no opponent blockers:
-		x x
-		x
-	After each depth, limit remaining searched branches by percentage
+	x Run 'complete' search, then store the real values of some intermediate states for our AI to search
+	Try to create one of the following patterns with no opponent blockers:
+		X X
+		X
+		
+		X X
+		
+		X
 	
 Technologies:
 	redis.io
 	
 ToDo:
-	PregameComputer
+	x PregameComputer
 		createAllBoardsAtSingleDepth() 
-			Convert to be iterative rather than recursive
+			* Convert to be iterative rather than recursive
+			* Store boards using better memory efficiency (currently using array of ints, which is 64x4=256 bytes)
 			Check for rotated boards and prune away
-			Store boards using better memory efficiency (currently using array of ints, which is 64x4=256 bytes)
+			Check for wins and cut those branches
+	* Find set of data structures that allow an easy traversal of the 'frontier'
+	* After each depth, limit remaining searched branches by percentage
